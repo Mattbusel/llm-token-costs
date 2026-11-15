@@ -1,0 +1,42 @@
+name: test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: '3.9'
+            llm: 'llm==0.27.1'
+          - python-version: '3.11'
+            llm: 'llm==0.31.1'
+          - python-version: '3.12'
+            llm: 'llm'
+          - python-version: '3.13'
+            llm: 'llm'
+          - python-version: '3.14'
+            llm: 'llm'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      # llm 0.27 to 0.31 import httpx without declaring it; newer openai releases no longer pull it in.
+      - run: python -m pip install -e '.[test]' '${{ matrix.llm }}' httpx
+      - run: python -m pytest -q
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install ruff black
+      - run: ruff check .
+      - run: black --check .
